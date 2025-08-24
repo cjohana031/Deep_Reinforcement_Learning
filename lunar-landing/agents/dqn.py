@@ -22,7 +22,7 @@ class DQNAgent:
         buffer_size=10000,
         batch_size=64,
         target_update_freq=10,
-        device='cuda' if torch.cuda.is_available() else 'cpu',
+        device='cpu',
         model_dir='models/dqn'
     ):
         self.state_dim = state_dim
@@ -44,10 +44,19 @@ class DQNAgent:
         
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
         self.loss_fn = nn.MSELoss()
-        
-        self.replay_buffer = ReplayBuffer(buffer_size, device)
-        
+
         self.update_counter = 0
+
+        if torch.cuda.is_available():
+            device = "cuda"
+#       elif torch.backends.mps.is_available():
+#         device = "mps"
+        else:
+            device = "cpu"
+
+        self.device = device
+
+        self.replay_buffer = ReplayBuffer(buffer_size, self.device)
         
     def act(self, state, training=True):
         if training and np.random.random() < self.epsilon:

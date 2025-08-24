@@ -3,3 +3,4 @@
 lunar-landing/models/dqn/*.pth
 lunar-landing/models/dqn/*.json
 **.npz
+**.DS_Store**
