@@ -1,4 +1,5 @@
 .idea/*
 **.cpython-**
-lunar-landing/models/dqn/*
+lunar-landing/models/dqn/*.pth
+lunar-landing/models/dqn/*.json
 **.npz
