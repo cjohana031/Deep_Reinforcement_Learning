@@ -1,1 +1,4 @@
 .idea/*
+**.cpython-**
+lunar-landing/models/dqn/*
+**.npz
