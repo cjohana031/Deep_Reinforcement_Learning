@@ -3,6 +3,9 @@ import torch
 from pathlib import Path
 import json
 from datetime import datetime
+import subprocess
+import time
+import webbrowser
 
 from environments import LunarEnvironment
 from agents.dqn import DQNAgent
@@ -80,6 +83,13 @@ def train_dqn(
         
         avg_loss = np.mean(losses) if losses else 0
         
+        # Log additional metrics to TensorBoard
+        logger.log_training_metrics(
+            episode=episode,
+            loss=avg_loss if losses else None,
+            epsilon=agent.epsilon
+        )
+        
         if episode % 10 == 0:
             avg_reward_100 = np.mean(logger.get_history()['rewards'][-100:]) if episode >= 99 else np.mean(logger.get_history()['rewards'])
             print(f"Episode {episode:4d} | Reward: {total_reward:7.2f} | Steps: {steps:3d} | "
@@ -100,6 +110,9 @@ def train_dqn(
             
             avg_eval_reward = np.mean(eval_rewards)
             print(f"  [EVAL] Average reward over {eval_episodes} episodes: {avg_eval_reward:.2f}")
+            
+            # Log evaluation results to TensorBoard
+            logger.log_training_metrics(episode=episode, eval_reward=avg_eval_reward)
             
             if avg_eval_reward > best_avg_reward:
                 best_avg_reward = avg_eval_reward
@@ -128,6 +141,47 @@ def train_dqn(
     
     env.close()
     eval_env.close()
+    
+    # Close TensorBoard writer and get log directory
+    tensorboard_dir = logger.close()
+    
+    # Launch TensorBoard
+    print("\n" + "=" * 50)
+    print("Launching TensorBoard...")
+    print(f"TensorBoard will show results from: {tensorboard_dir}")
+    
+    try:
+        # Start TensorBoard process
+        tb_process = subprocess.Popen(
+            ["tensorboard", "--logdir", tensorboard_dir, "--port", "6006"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        # Give TensorBoard time to start
+        time.sleep(3)
+        
+        # Open in browser
+        url = "http://localhost:6006"
+        print(f"Opening TensorBoard at {url}")
+        webbrowser.open(url)
+        
+        print("\nTensorBoard is running! Press Ctrl+C to stop it.")
+        print("You can also manually visit: http://localhost:6006")
+        
+        # Keep the process running
+        try:
+            tb_process.wait()
+        except KeyboardInterrupt:
+            print("\nStopping TensorBoard...")
+            tb_process.terminate()
+            tb_process.wait(timeout=5)
+    except FileNotFoundError:
+        print("TensorBoard not found. Please install it with: pip install tensorboard")
+        print(f"You can manually view the logs by running: tensorboard --logdir {tensorboard_dir}")
+    except Exception as e:
+        print(f"Error launching TensorBoard: {e}")
+        print(f"You can manually view the logs by running: tensorboard --logdir {tensorboard_dir}")
     
     return logger.get_history()
 

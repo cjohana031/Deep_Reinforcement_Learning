@@ -77,3 +77,9 @@ The random agent selects actions randomly from the action space:
 - Action 3: Fire right orientation engine
 
 This serves as a baseline for comparison with more sophisticated agents.
+
+
+## Reporting
+
+We must store in tensor board the training journey after each epoch to include in the 
+final report.
