@@ -33,12 +33,20 @@ class DQNAgent:
         self.epsilon_decay = epsilon_decay
         self.batch_size = batch_size
         self.target_update_freq = target_update_freq
-        self.device = device
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
-        
-        self.q_network = DQNNetwork(state_dim, action_dim, hidden_sizes=[256, 256]).to(device)
-        self.target_network = DQNNetwork(state_dim, action_dim, hidden_sizes=[256, 256]).to(device)
+
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+
+        self.device = device
+
+        self.q_network = DQNNetwork(state_dim, action_dim, hidden_sizes=[256, 256]).to(self.device)
+        self.target_network = DQNNetwork(state_dim, action_dim, hidden_sizes=[256, 256]).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
         
@@ -47,15 +55,6 @@ class DQNAgent:
 
         self.update_counter = 0
 
-        if torch.cuda.is_available():
-            device = "cuda"
-#       elif torch.backends.mps.is_available():
-#         device = "mps"
-        else:
-            device = "cpu"
-
-        self.device = device
-
         self.replay_buffer = ReplayBuffer(buffer_size, self.device)
         
     def act(self, state, training=True):
@@ -63,6 +62,7 @@ class DQNAgent:
             return np.random.randint(self.action_dim)
         
         with torch.no_grad():
+            print(f"Device used: {self.device}")
             state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             q_values = self.q_network(state_tensor)
             return q_values.argmax().item()
