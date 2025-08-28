@@ -1,6 +1,4 @@
 import gymnasium as gym
-import numpy as np
-
 
 class LunarEnvironment:
     def __init__(self, render_mode=None, seed=None):
