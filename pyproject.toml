@@ -16,3 +16,8 @@ dependencies = [
     "tensorboard>=2.20.0",
     "jupyterlab>=4.4.6",
 ]
+
+[tool.uv.workspace]
+members = [
+    "beam-rider",
+]
