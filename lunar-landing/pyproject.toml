@@ -1,0 +1,14 @@
+[project]
+name = "lunar-landing"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "gymnasium[atari,box2d,swig]>=1.2.0",
+    "matplotlib>=3.10.6",
+    "notebook>=7.4.5",
+    "numpy>=2.3.2",
+    "pandas>=2.3.2",
+    "torch>=2.8.0",
+]

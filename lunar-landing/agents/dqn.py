@@ -40,7 +40,6 @@ class DQNAgent:
             return np.random.randint(self.action_dim)
 
         with torch.no_grad():
-            print(f"Device used: {self.device}")
             state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             q_values = self.q_network(state_tensor)
             return q_values.argmax().item()

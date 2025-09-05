@@ -26,7 +26,6 @@ def evaluate_dqn(
     agent = DQNAgent(
         state_dim=state_dim,
         action_dim=action_dim,
-        epsilon=0.0
     )
     
     if not agent.load(model_path):
