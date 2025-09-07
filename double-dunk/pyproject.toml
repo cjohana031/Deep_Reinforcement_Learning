@@ -1,0 +1,13 @@
+[project]
+name = "double-dunk"
+version = "0.1.0"
+description = "DDQN implementation for DoubleDunk Atari game"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ale-py>=0.11.2",
+    "gymnasium[atari]>=1.2.0",
+    "opencv-python>=4.11.0.86",
+    "tensorboard>=2.20.0",
+    "torch>=2.8.0",
+]
