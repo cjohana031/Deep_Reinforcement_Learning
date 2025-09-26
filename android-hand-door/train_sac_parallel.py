@@ -211,43 +211,48 @@ def evaluate_parallel_agent(model_path='models/sac_parallel/sac_best.zip', episo
     env_factory = make_env(render_mode="human", seed=42)
     env = env_factory()
 
-    # Load the trained model
-    from stable_baselines3 import SAC
-    model = SAC.load(model_path, env=env)
+    try:
+        # Load the trained model
+        from stable_baselines3 import SAC
+        model = SAC.load(model_path, env=env)
 
-    total_rewards = []
-    total_successes = []
+        total_rewards = []
+        total_successes = []
 
-    for i in range(episodes):
-        obs, _ = env.reset()
-        episode_reward = 0
-        success = 0
+        for i in range(episodes):
+            obs, _ = env.reset()
+            episode_reward = 0
+            success = 0
 
-        while True:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, reward, terminated, truncated, info = env.step(action)
-            episode_reward += reward
+            while True:
+                action, _ = model.predict(obs, deterministic=True)
+                obs, reward, terminated, truncated, info = env.step(action)
+                episode_reward += reward
 
-            if terminated or truncated:
-                success = env.get_success_rate(info)
-                break
+                if terminated or truncated:
+                    success = env.get_success_rate(info)
+                    break
 
-        total_rewards.append(episode_reward)
-        total_successes.append(success)
+            total_rewards.append(episode_reward)
+            total_successes.append(success)
 
-        print(f"Episode {i+1:2d}: Reward = {episode_reward:7.1f}, Success = {success:.2f}")
+            print(f"Episode {i+1:2d}: Reward = {episode_reward:7.1f}, Success = {success:.2f}")
 
-    avg_reward = np.mean(total_rewards)
-    avg_success = np.mean(total_successes)
-    std_reward = np.std(total_rewards)
+        avg_reward = np.mean(total_rewards)
+        avg_success = np.mean(total_successes)
+        std_reward = np.std(total_rewards)
 
-    print(f"\n📊 Evaluation Results ({episodes} episodes):")
-    print(f"Average Reward: {avg_reward:.2f} ± {std_reward:.2f}")
-    print(f"Average Success: {avg_success:.3f}")
-    print(f"Success Rate: {np.sum(np.array(total_successes) > 0.5) / episodes * 100:.1f}%")
+        print(f"\n📊 Evaluation Results ({episodes} episodes):")
+        print(f"Average Reward: {avg_reward:.2f} ± {std_reward:.2f}")
+        print(f"Average Success: {avg_success:.3f}")
+        print(f"Success Rate: {np.sum(np.array(total_successes) > 0.5) / episodes * 100:.1f}%")
 
-    env.close()
-    return avg_reward, avg_success
+        return avg_reward, avg_success
+
+    finally:
+        # Ensure environment is properly closed
+        if hasattr(env, 'close'):
+            env.close()
 
 
 if __name__ == "__main__":

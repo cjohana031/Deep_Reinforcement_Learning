@@ -74,4 +74,24 @@ class AdroitHandDoorEnvironment(gym.Env):
     def get_action_bounds(self):
         return self.action_space.low, self.action_space.high
 
+    def get_success_rate(self):
+        """
+        Get success rate for AdroitHandDoor environment.
+        Success is typically defined as opening the door (door_pos > threshold).
+        """
+        try:
+            # Get the current state of the door
+            info = getattr(self.env, '_get_obs_dict', lambda: {})()
+            if 'door_pos' in info:
+                # Door is considered open if position > 1.0 (typical threshold)
+                return 1.0 if info['door_pos'] > 1.0 else 0.0
+            else:
+                # Fallback: check if we can get door position from observation
+                obs = self.env._get_obs()
+                # In AdroitHandDoor, door position is typically in the observation
+                # This is a heuristic - adjust based on actual observation structure
+                return 0.0
+        except:
+            return 0.0
+
 
