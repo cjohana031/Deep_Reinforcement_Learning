@@ -17,7 +17,8 @@ import gymnasium as gym
 gym.register_envs(gymnasium_robotics)
 
 # Factory for parallel training (VecEnv)
-def make_env(render_mode=None, seed=42, max_episode_steps=50, reward_type="dense", reward_scale=1.0, rank=0):
+def make_env(render_mode=None, seed=42, max_episode_steps=50, reward_type="dense", reward_scale=1.0,
+             use_log_reward=False, log_epsilon=1e-6, rank=0):
     """Create environment factory function for parallel training"""
     def _init():
         env = ShadowHandReachEnvironment(
@@ -25,7 +26,9 @@ def make_env(render_mode=None, seed=42, max_episode_steps=50, reward_type="dense
             seed=seed + rank,
             max_episode_steps=max_episode_steps,
             reward_type=reward_type,
-            reward_scale=reward_scale
+            reward_scale=reward_scale,
+            use_log_reward=use_log_reward,
+            log_epsilon=log_epsilon
         )
         return env
     return _init
@@ -40,7 +43,9 @@ def train_sac_parallel(episodes=5000,
                       reward_type='dense',
                       reward_scale=1.0,
                       max_episode_steps=50,
-                      vec_env_cls=None):
+                      vec_env_cls=None,
+                      use_log_reward=False,
+                      log_epsilon=1e-6):
     """
     Train SAC agent with parallel environments on Shadow Dexterous Hand Reach.
 
@@ -74,7 +79,9 @@ def train_sac_parallel(episodes=5000,
             seed=42,
             max_episode_steps=max_episode_steps,
             reward_type=reward_type,
-            reward_scale=reward_scale
+            reward_scale=reward_scale,
+            use_log_reward=use_log_reward,
+            log_epsilon=log_epsilon
         )
         # Wrap with success tracking for proper SB3 integration
         return SuccessInfoWrapper(base_env)
@@ -143,6 +150,9 @@ def train_sac_parallel(episodes=5000,
     print(f"Save checkpoint every: {save_interval} episodes")
     print(f"Reward type: {reward_type}")
     print(f"Reward scale: {reward_scale}")
+    print(f"Log reward transform: {'Enabled' if use_log_reward else 'Disabled'}")
+    if use_log_reward:
+        print(f"Log epsilon: {log_epsilon}")
     print("-" * 80)
 
     # Initialize logger for CSV logging
@@ -312,6 +322,10 @@ if __name__ == "__main__":
                         help='Evaluate trained model instead of training')
     parser.add_argument('--eval_episodes', type=int, default=10,
                         help='Number of evaluation episodes')
+    parser.add_argument('--use_log_reward', action='store_true',
+                        help='Apply log transform to amplify near-zero learning signal')
+    parser.add_argument('--log_epsilon', type=float, default=1e-6,
+                        help='Small constant to avoid log(0) in reward transform')
 
     args = parser.parse_args()
 
@@ -330,5 +344,7 @@ if __name__ == "__main__":
             reward_type=args.reward_type,
             reward_scale=args.reward_scale,
             max_episode_steps=args.max_episode_steps,
-            vec_env_cls=vec_env_cls
+            vec_env_cls=vec_env_cls,
+            use_log_reward=args.use_log_reward,
+            log_epsilon=args.log_epsilon
         )

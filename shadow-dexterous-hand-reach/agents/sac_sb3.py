@@ -217,9 +217,7 @@ class TrainingCallback(BaseCallback):
             elif hasattr(ep_info, 'get') and ep_info.get('is_success') is not None:
                 success = float(ep_info['is_success'])
             else:
-                # Fallback: For Shadow Hand dense rewards, success is when final reward > -0.01 (distance < 1cm)
-                # Dense rewards are negative distances, so a reward of -0.01 means 1cm distance
-                success = 1.0 if ep_info['r'] > -0.01 else 0.0
+                success = 0.0
 
             self.episode_successes.append(success)
 

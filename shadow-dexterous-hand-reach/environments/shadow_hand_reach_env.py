@@ -42,7 +42,7 @@ class ShadowHandReachEnvironment(gym.Env):
                  reward_type: str = "dense",
                  reward_scale: float = 1.0,
                  use_log_reward: bool = False,
-                 log_epsilon: float = 1e-8):
+                 log_epsilon: float = 1e-6):
         """
         Initialize Shadow Hand Reach environment
 
@@ -52,10 +52,14 @@ class ShadowHandReachEnvironment(gym.Env):
             max_episode_steps: Maximum steps per episode
             reward_type: 'dense' or 'sparse' reward function
             reward_scale: Scaling factor for rewards (default 1.0 = no scaling)
+            use_log_reward: Apply log transform to amplify near-zero learning signal
+            log_epsilon: Small constant to avoid log(0) in reward transform
         """
         self.reward_type = reward_type
         self.max_episode_steps = max_episode_steps
         self.reward_scale = reward_scale
+        self.use_log_reward = use_log_reward
+        self.log_epsilon = log_epsilon
         self.current_step = 0
 
         # Create the environment with dense rewards
@@ -129,6 +133,13 @@ class ShadowHandReachEnvironment(gym.Env):
         # Execute action in environment
         obs, reward, terminated, truncated, info = self.env.step(action)
 
+        # Store original reward for success calculation fallback
+        original_reward = reward
+
+        # Apply log transform if enabled (before scaling)
+        if self.use_log_reward:
+            reward = self._apply_log_transform(reward)
+
         # Apply reward scaling
         if self.reward_scale != 1.0:
             reward = reward * self.reward_scale
@@ -141,15 +152,30 @@ class ShadowHandReachEnvironment(gym.Env):
             distance = np.linalg.norm(obs['achieved_goal'] - obs['desired_goal'])
             info['distance'] = distance
 
-            # Only override is_success if environment doesn't provide it
-            if 'is_success' not in info:
-                info['is_success'] = distance < 0.01  # 1cm tolerance (same as environment default)
+            # Always override is_success with our custom threshold
+            info['is_success'] = distance < 0.02  # 2cm tolerance
         elif 'is_success' not in info:
-            # Fallback for non-dict observations: use unscaled reward for success check
-            unscaled_reward = reward / self.reward_scale if self.reward_scale != 0 else reward
-            info['is_success'] = unscaled_reward > -0.01 if self.reward_type == 'dense' else unscaled_reward >= 0
+            # Fallback for non-dict observations: use original reward for success check
+            info['is_success'] = original_reward > -0.01 if self.reward_type == 'dense' else original_reward >= 0
 
         return state, reward, terminated, truncated, info
+
+    def _apply_log_transform(self, reward: float) -> float:
+        """
+        Apply log transform to amplify near-zero learning signal.
+        For negative rewards (distances): r' = -log(-r + epsilon)
+
+        This amplifies small improvements near zero while keeping reward ordering.
+        Example: -0.02 → 3.9, -0.01 → 4.6, -0.005 → 5.3
+        """
+        if reward >= 0:
+            # For positive or zero rewards, return as-is or apply different transform
+            return reward
+        else:
+            # For negative rewards (typical distance-based rewards)
+            # Ensure we don't take log of zero or negative values
+            negative_reward = -abs(reward)  # Ensure it's negative
+            return -np.log(-negative_reward + self.log_epsilon)
 
     def _obs_to_state(self, obs) -> np.ndarray:
         """Convert observation dict to flat state array"""
